@@ -135,26 +135,23 @@ if load_btn and driver1:
                     ax_map2.legend()
                     st.pyplot(fig_map2)
 
+
                     # Delta Time Plot
-                    if driver2 != 'None':
-                        st.subheader("Delta Time Plot")
+                    st.subheader("Delta Time Plot")
+                    try:
+                        delta, ref_tel = fastf1.plotting.delta_time(lap1, lap2)
 
-                        try:
-                            ref_lap = lap1
-                            compare_lap = lap2
+                        fig_delta, ax_delta = plt.subplots()
+                        ax_delta.plot(ref_tel['Distance'], delta, color='purple')
+                        ax_delta.set_xlabel('Distance (m)')
+                        ax_delta.set_ylabel('Delta Time (s)')
+                        ax_delta.axhline(0, color='black', linestyle='--', linewidth=1)
+                        ax_delta.set_title(f"{driver2} vs {driver1} Delta Time (Negative = {driver2} ahead)")
+                        st.pyplot(fig_delta)
 
-                            delta = fastf1.plotting.DeltaTime(ref_lap, compare_lap)
-                            delta_time = delta.get_delta_time()
+                    except Exception as e:
+                        st.error(f"Could not calculate delta time: {e}")
 
-                            fig_delta, ax_delta = plt.subplots()
-                            ax_delta.plot(delta_time['Distance'], delta_time['DeltaTime'], color='purple')
-                            ax_delta.set_xlabel('Distance (m)')
-                            ax_delta.set_ylabel('Delta Time (s)')
-                            ax_delta.set_title(f"{driver2} vs {driver1} Delta Time (Negative = {driver2} ahead)")
-                            st.pyplot(fig_delta)
-
-                        except Exception as e:
-                            st.error(f"Could not calculate delta time: {e}")
 
 
                     # Lap Summary Comparison
