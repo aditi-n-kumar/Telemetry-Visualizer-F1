@@ -1,5 +1,6 @@
 import streamlit as st
 import fastf1
+
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -27,7 +28,7 @@ def smooth_telemetry(telemetry: pd.DataFrame, window: int = 5) -> pd.DataFrame:
 
 # --- Sidebar ---
 st.sidebar.header("Session Selection")
-year = st.sidebar.selectbox("Select Year", list(range(2018, 2026)))
+year = st.sidebar.selectbox("Select Year", list(range(2022, 2026)))
 gp = st.sidebar.selectbox("Select Grand Prix", [
     'Australian Grand Prix', 'Chinese Grand Prix', 'Japanese Grand Prix', 'Bahrain Grand Prix', 
     'Saudi Arabian Grand Prix', 'Miami Grand Prix', 'British Grand Prix', 'Monaco Grand Prix', 'Italian Grand Prix', 
@@ -188,7 +189,7 @@ if load_btn and driver1:
         except Exception as e:
             st.error(f"Failed to load session: {e}")
 
-
+####--------------------------------------------------------------------------------------------------------------------
 
 # import streamlit as st
 # import fastf1
