@@ -68,7 +68,7 @@ if st.session_state.get('session_loaded', False):
     #     'McLaren': '#FF8700',
     #     'Alpine': '#0090FF',
     #     'Aston Martin': '#006F62',
-    #     'Williams': '#005AFF',
+    #     'Williams': '#005AFF',    
     #     'AlphaTauri': '#2B4562',
     #     'Alfa Romeo': '#900000',
     #     'Haas': '#B6BABD',
