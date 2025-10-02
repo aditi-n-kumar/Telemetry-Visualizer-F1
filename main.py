@@ -23,7 +23,8 @@ This app uses data from **FastF1** to help analyze race telemetry, compare drive
 ### 📊 Pages Available:
 - **Telemetry Visualizer**: Compare telemetry data (speed, throttle, brake, etc.) between two drivers during a race or qualifying session.
 - **Session Summary**: See drivers dashboard for each session, including lap times, sector times, and tire strategies.
-- *(More pages coming soon – strategy insights, pit stop comparisons, etc.)*
+- ** Strategy Tools**: Analyze pit stops, tire strategies, top speeds, and sector performance.
+- *(More pages coming soon)*
 
 ---
 To get started, click on **"Telemetry Visualizer"** in the left sidebar.
