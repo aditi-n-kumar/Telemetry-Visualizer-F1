@@ -1,19 +1,29 @@
+import os
 import streamlit as st
 import fastf1
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# Set the page title
-# st.set_page_config(page_title="F1 Strategy Dashboard", layout="centered")
+# -------------------------------
+# Setup FastF1 cache safely
+# -------------------------------
+cache_dir = ".streamlit/cache"
+os.makedirs(cache_dir, exist_ok=True)  # Create folder if it doesn't exist
+fastf1.Cache.enable_cache(cache_dir)
 
+# -------------------------------
+# Streamlit Page Config
+# -------------------------------
 st.set_page_config(
     page_title="F1 Telemetry Dashboard",
     page_icon="🏎️",
-    layout="wide",  # Optional: 'centered' or 'wide'
-    initial_sidebar_state="expanded"  # Optional: 'expanded' or 'collapsed'
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Main content
+# -------------------------------
+# Main Content
+# -------------------------------
 st.title("🏁 Formula 1 Strategy Dashboard")
 st.markdown("""
 Welcome to the **F1 Strategy Dashboard**!
@@ -23,18 +33,12 @@ This app uses data from **FastF1** to help analyze race telemetry, compare drive
 ### 📊 Pages Available:
 - **Telemetry Visualizer**: Compare telemetry data (speed, throttle, brake, etc.) between two drivers during a race or qualifying session.
 - **Session Summary**: See drivers dashboard for each session, including lap times, sector times, and tire strategies.
-- ** Strategy Tools**: Analyze pit stops, tire strategies, top speeds, and sector performance.
+- **Strategy Tools**: Analyze pit stops, tire strategies, top speeds, and sector performance.
 - *(More pages coming soon)*
 
 ---
 To get started, click on **"Telemetry Visualizer"** in the left sidebar.
 """)
-
-# fastf1.Cache.enable_cache('fastf1cache') # lets see if this makes things slower for the other pages
-fastf1.Cache.enable_cache(".streamlit/cache")
-
-
-
 
 # import streamlit as st
 # import fastf1
