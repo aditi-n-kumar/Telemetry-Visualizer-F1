@@ -39,24 +39,22 @@ if st.session_state.get('session_loaded', False):
     results = session.results
 
     summary_df = results[['Position', 'GridPosition', 'Abbreviation', 'FullName', 'Time', 'Status', 'TeamName']].copy()
-    # Fill missing values to prevent blank rows while keeping all drivers
-    summary_df['Position'] = summary_df['Position'].fillna('—')
-    summary_df['GridPosition'] = summary_df['GridPosition'].fillna('—')
+    # Convert Position/GridPosition to numeric first (coerce non-numeric to NaN)
+    summary_df['Position_num'] = pd.to_numeric(summary_df['Position'], errors='coerce')
+    summary_df['GridPosition_num'] = pd.to_numeric(summary_df['GridPosition'], errors='coerce')
+
+    # Calculate positions gained (Grid - Finish) using numeric columns; use nullable integer dtype
+    summary_df['Positions Gained'] = (summary_df['GridPosition_num'] - summary_df['Position_num']).astype('Int64')
+
+    # Prepare display-friendly columns (fill missing display values with '—' or sensible defaults)
+    summary_df['Position'] = summary_df['Position_num'].apply(lambda x: str(int(x)) if pd.notna(x) else '—')
+    summary_df['GridPosition'] = summary_df['GridPosition_num'].apply(lambda x: str(int(x)) if pd.notna(x) else '—')
     summary_df['Abbreviation'] = summary_df['Abbreviation'].fillna('—')
     summary_df['FullName'] = summary_df['FullName'].fillna('Unknown')
     summary_df['Time'] = summary_df['Time'].fillna('—')
     summary_df['Status'] = summary_df['Status'].fillna('Unknown')
     summary_df['TeamName'] = summary_df['TeamName'].fillna('—')
 
-    summary_df['Positions Gained'] = summary_df['GridPosition'] - summary_df['Position']
-
-    def format_time(t):
-        try:
-            return str(t)
-        except:
-            return t
-
-    summary_df['TimeFormatted'] = summary_df['Time'].apply(format_time)
     # summary_df = summary_df.sort_values('Position')
     # Custom sort: numeric positions first, others after
     summary_df['SortOrder'] = summary_df['Position'].apply(lambda x: int(x) if str(x).isdigit() else 999)
