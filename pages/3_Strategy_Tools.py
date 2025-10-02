@@ -4,8 +4,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import fastf1
-# from fastf1.plotting import team_color
 from matplotlib.cm import get_cmap
+import io
 
 # Enable FastF1 cache
 fastf1.Cache.enable_cache('fastf1cache')
@@ -40,6 +40,19 @@ TEAM_COLORS = {
 YEARS = sorted(YEAR_DRIVERS.keys())
 selected_year = st.selectbox("Select Year", YEARS, index=len(YEARS)-1, key="selected_year")
 AVAILABLE_DRIVERS = YEAR_DRIVERS.get(selected_year, [])
+# --- Grand Prix selector (populate from fastf1 schedule) ---
+try:
+    schedule = fastf1.get_event_schedule(selected_year)
+    gp_options = schedule['EventName'].tolist()
+    if not gp_options:
+        gp_options = ['Baku']
+except Exception:
+    gp_options = ['Baku']
+
+selected_gp = st.selectbox("Select Grand Prix", gp_options, index=0, key="selected_gp")
+
+# removed the top "Load Session" button; each tab will load/cached the session on demand
+# (session_data is fetched in each tab when needed and stored in st.session_state)
 
 # --- Dark theme for matplotlib / tables ---
 DARK_BG = "#0E1117"
@@ -62,23 +75,85 @@ plt.rcParams.update({
     "axes.titlecolor": TEXT_COLOR,
     "figure.edgecolor": DARK_BG,
 })
-
-# helper to make a fig/ax pair with correct facecolors (use when you need fresh fig)
+ 
 def dark_fig(figsize=(8,4)):
     fig, ax = plt.subplots(figsize=figsize)
     fig.patch.set_facecolor(DARK_BG)
     ax.set_facecolor(DARK_BG)
     return fig, ax
 
-# --- Tabs ---
-tabs = st.tabs(["Pit Stop Analyzer", "Tire Strategy Visualizer", "Top Speed Comparison", "Sector Heatmap"])
+def fig_to_png_bytes(fig):
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", bbox_inches="tight", facecolor=fig.get_facecolor())
+    buf.seek(0)
+    return buf.getvalue()
 
-# --- Helper: Fetch session ---
-@st.cache_data
+# --- Fetch session ---
+@st.cache_resource(show_spinner=False)
 def load_session(year, grand_prix='Baku', session='R'):
     s = fastf1.get_session(year, grand_prix, session)
     s.load()
     return s
+
+# --- Tabs ---
+tabs = st.tabs(["Pit Stop Analyzer", "Tire Strategy Visualizer", "Top Speed Comparison", "Sector Heatmap"])
+
+
+# 1️⃣ Pit Stop Analyzer
+with tabs[0]:
+    st.header("Pit Stop Analyzer")
+    driver_pit = st.selectbox("Select Driver", AVAILABLE_DRIVERS, key="pit_driver")
+
+    load_pits = st.button("Load Pit Stops")
+
+    if load_pits:
+        with st.spinner("Loading pit stop data..."):
+            session_data = st.session_state.get('session_data')
+            if session_data is None:
+                session_data = load_session(selected_year, selected_gp, 'R')
+                st.session_state['session_data'] = session_data
+
+            driver_laps = session_data.laps.pick_driver(driver_pit)
+
+            # Pit stop detection: laps where PitInTime is set
+            pit_laps = driver_laps[driver_laps['PitInTime'].notna()].copy()
+
+            if pit_laps.empty:
+                st.warning(f"No pit stops recorded for {driver_pit}.")
+            else:
+                # Calculate pit stop duration (time difference between PitIn and PitOut)
+                pit_laps['PitDuration'] = (pit_laps['PitOutTime'] - pit_laps['PitInTime']).dt.total_seconds()
+
+                # Show as table
+                st.subheader("Pit Stop Summary")
+                st.dataframe(
+                    pit_laps[['LapNumber', 'Compound', 'PitInTime', 'PitOutTime', 'PitDuration']].style
+                    .background_gradient(cmap="RdYlGn_r", subset=['PitDuration'])
+                    .format({"PitDuration": "{:.2f}"})
+                )
+
+                # Plot bar chart of pit stop durations
+                fig, ax = dark_fig(figsize=(8, 4))
+                ax.bar(pit_laps['LapNumber'], pit_laps['PitDuration'], color="#FFD700", edgecolor="black")
+                ax.set_xlabel("Lap Number")
+                ax.set_ylabel("Pit Stop Duration (s)")
+                ax.set_title(f"Pit Stops — {driver_pit} ({selected_year} {selected_gp})")
+                st.pyplot(fig)
+
+                # Download option
+                png = fig_to_png_bytes(fig)
+                st.download_button(
+                    "Download Pit Stop Chart PNG",
+                    data=png,
+                    file_name=f"pitstops_{driver_pit}_{selected_year}_{selected_gp}.png",
+                    mime="image/png"
+                )
+                plt.clf()
+    else:
+        st.info("Click 'Load Pit Stops' to fetch pit stop data.")
+
+
+
 
 # 2️⃣ Tire Strategy Visualizer
 with tabs[1]:
@@ -91,7 +166,10 @@ with tabs[1]:
     
     if load_tire:
         with st.spinner("Loading tire strategy..."):
-            session_data = load_session(selected_year, 'Baku', 'R')
+            session_data = st.session_state.get('session_data')
+            if session_data is None:
+                session_data = load_session(selected_year, selected_gp, 'R')
+                st.session_state['session_data'] = session_data
             driver_laps = session_data.laps.pick_driver(driver_tire)
             driver_laps = driver_laps[(driver_laps['LapNumber'] >= lap_range_tire[0]) &
                                       (driver_laps['LapNumber'] <= lap_range_tire[1])]
@@ -106,6 +184,15 @@ with tabs[1]:
             ax.set_xlabel("Lap")
             ax.set_title(f"Tire Strategy - {driver_tire}")
             st.pyplot(fig)
+
+            # allow download of the chart as PNG
+            png = fig_to_png_bytes(fig)
+            st.download_button(
+                "Download Tire Strategy PNG",
+                data=png,
+                file_name=f"tire_strategy_{driver_tire}_{selected_year}.png",
+                mime="image/png"
+            )
             plt.clf()
     else:
         st.info("Click 'Load Tire Strategy' to fetch tire data.")
@@ -120,7 +207,10 @@ with tabs[2]:
     if load_speed:
         if drivers_speed:
             with st.spinner("Loading top speed data..."):
-                session_data = load_session(selected_year, 'Baku', 'R')
+                session_data = st.session_state.get('session_data')
+                if session_data is None:
+                    session_data = load_session(selected_year, selected_gp, 'R')
+                    st.session_state['session_data'] = session_data
                 top_speeds = []
                 colors = []
                 teams_used = []
@@ -206,6 +296,15 @@ with tabs[2]:
                     ax.legend(handles=handles, title="Team", bbox_to_anchor=(1.02, 1), loc='upper left')
 
                 st.pyplot(fig)
+                # provide PNG download for top speeds chart
+                png = fig_to_png_bytes(fig)
+                driver_slug = "_".join(drivers_speed)
+                st.download_button(
+                    "Download Top Speeds PNG",
+                    data=png,
+                    file_name=f"top_speeds_{driver_slug}_{selected_year}.png",
+                    mime="image/png"
+                )
                 plt.clf()
         else:
             st.info("Select one or more drivers to compare top speeds.")
@@ -222,7 +321,10 @@ with tabs[3]:
     
     if load_sector:
         with st.spinner("Loading sector data..."):
-            session_data = load_session(selected_year, 'Baku', 'R')
+            session_data = st.session_state.get('session_data')
+            if session_data is None:
+                session_data = load_session(selected_year, selected_gp, 'R')
+                st.session_state['session_data'] = session_data
             driver_laps = session_data.laps.pick_driver(driver_sector)
             driver_laps = driver_laps[(driver_laps['LapNumber'] >= lap_range_sector[0]) &
                                       (driver_laps['LapNumber'] <= lap_range_sector[1])]
@@ -241,119 +343,3 @@ with tabs[3]:
     else:
         st.info("Click 'Load Sector Data' to fetch sector performance.")
 
-
-# # pages/3_Strategy_Tools.py
-# import streamlit as st
-# import pandas as pd
-# import matplotlib.pyplot as plt
-# import numpy as np
-
-# st.set_page_config(page_title="Strategy Tools", layout="wide")
-
-# # Master driver lists per year
-# # Master driver codes per year
-# YEAR_DRIVERS = {
-#     2023: [
-#         "VER", "PER", "HAM", "RUS", "LEC",
-#         "SAI", "NOR", "PIA", "ALO", "OCO",
-#         "GAS", "TSU", "BOT", "ZHO", "MAG",
-#         "HUL", "SAR", "STR", "ALB", "RIC"
-#     ],
-#     2024: [
-#         "VER", "PER", "HAM", "RUS", "LEC",
-#         "SAI", "NOR", "PIA", "ALO", "OCO",
-#         "GAS", "TSU", "BOT", "ZHO", "MAG",
-#         "HUL", "SAR", "STR", "ALB", "RIC"
-#     ],
-#     2025: [
-#         "VER", "RUS", "SAI", "ANT", "LAW",
-#         "TSU", "NOR", "HAM", "LEC", "HAD",
-#         "BOR", "BEA", "ALB", "OCO", "ALO",
-#         "HUL", "STR", "GAS", "COL", "PIA"
-#     ]
-# }
-
-
-
-# YEARS = sorted(YEAR_DRIVERS.keys())
-
-# # Global year selector (affects all driver dropdowns)
-# selected_year = st.selectbox("Select Year", YEARS, index=len(YEARS)-1, key="selected_year")
-# # drivers available for the currently selected year
-# AVAILABLE_DRIVERS = YEAR_DRIVERS.get(selected_year, [])
-
-# st.title("🏎️ Strategy Tools")
-# st.markdown("Quick insights into pit stops, tire strategy, top speed, and sector performance.")
-
-# # --- Tabs ---
-# tabs = st.tabs(["Pit Stop Analyzer", "Tire Strategy Visualizer", "Top Speed Comparison", "Sector Heatmap"])
-
-# # -------------------------------
-# # 1. Pit Stop Analyzer
-# # -------------------------------
-# with tabs[0]:
-#     st.header("Pit Stop Analyzer")
-    
-#     # Filters
-#     drivers = st.multiselect("Select Drivers", AVAILABLE_DRIVERS, key="pit_drivers")
-#     session = st.selectbox("Select Session", ["FP1", "FP2", "Quali", "Race"])
-    
-#     st.subheader("Lap-by-Lap Pit Stops")
-#     if not drivers:
-#         st.info("Select one or more drivers to view pit stops.")
-#     else:
-#         # Dummy chart placeholder
-#         laps = np.arange(1, 51)
-#         pit_laps = np.random.choice(laps, size=len(drivers), replace=True)
-#         for i, driver in enumerate(drivers):
-#             plt.scatter(pit_laps[i], i+1, label=driver)
-#         plt.xlabel("Lap")
-#         plt.ylabel("Driver")
-#         plt.legend()
-#         st.pyplot(plt.gcf())
-#         plt.clf()
-
-# # -------------------------------
-# # 2. Tire Strategy Visualizer
-# # -------------------------------
-# with tabs[1]:
-#     st.header("Tire Strategy Visualizer")
-    
-#     driver_tire = st.selectbox("Select Driver", AVAILABLE_DRIVERS, key="tire_driver")
-#     tire_compound = st.selectbox("Select Tire Compound", ["Soft", "Medium", "Hard"], key="tire_compound")
-#     lap_range_tire = st.slider("Select Lap Range", 1, 50, (1, 50), key="lap_range_tire")
-    
-#     st.subheader("Tire Stint Overview")
-#     st.line_chart(pd.DataFrame(np.random.randn(50, 1), columns=["Lap Time"]))
-
-# # -------------------------------
-# # 3. Top Speed Comparison
-# # -------------------------------
-# with tabs[2]:
-#     st.header("Top Speed Comparison")
-    
-#     drivers_speed = st.multiselect("Select Drivers", AVAILABLE_DRIVERS, key="speed_drivers")
-#     session_type = st.selectbox("Session Type", ["FP1", "FP2", "Quali", "Race"])
-    
-#     st.subheader("Top Speeds")
-#     if not drivers_speed:
-#         st.info("Select one or more drivers to compare top speeds.")
-#     else:
-#         speeds = pd.DataFrame({
-#             "Driver": drivers_speed,
-#             "Top Speed (km/h)": np.random.randint(300, 360, size=len(drivers_speed))
-#         })
-#         st.bar_chart(speeds.set_index("Driver"))
-
-# # -------------------------------
-# # 4. Sector Heatmap
-# # -------------------------------
-# with tabs[3]:
-#     st.header("Sector Heatmap")
-    
-#     driver_sector = st.selectbox("Select Driver", AVAILABLE_DRIVERS, key="sector_driver")
-#     lap_range_sector = st.slider("Select Lap Range", 1, 50, (1, 50), key="lap_range_sector")
-    
-#     st.subheader("Sector Performance Heatmap")
-#     sector_data = pd.DataFrame(np.random.rand(3,10), index=["Sector 1","Sector 2","Sector 3"])
-#     st.dataframe(sector_data.style.background_gradient(cmap="RdYlGn"))
