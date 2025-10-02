@@ -38,27 +38,41 @@ if st.session_state.get('session_loaded', False):
     session = st.session_state['session']
     results = session.results
 
-    summary_df = results[['Position', 'GridPosition', 'Abbreviation', 'FullName', 'Time', 'Status', 'TeamName']].copy()
-    # Convert Position/GridPosition to numeric first (coerce non-numeric to NaN)
+    # Only use finishing Position (remove GridPosition as it's redundant here)
+    summary_df = results[['Position', 'Abbreviation', 'FullName', 'Time', 'Status', 'TeamName']].copy()
+
+    # Convert Position to numeric for reliable sorting/display; coerce non-numeric to NaN
     summary_df['Position_num'] = pd.to_numeric(summary_df['Position'], errors='coerce')
-    summary_df['GridPosition_num'] = pd.to_numeric(summary_df['GridPosition'], errors='coerce')
 
-    # Calculate positions gained (Grid - Finish) using numeric columns; use nullable integer dtype
-    summary_df['Positions Gained'] = (summary_df['GridPosition_num'] - summary_df['Position_num']).astype('Int64')
-
-    # Prepare display-friendly columns (fill missing display values with '—' or sensible defaults)
+    # Prepare display-friendly Position and other fields
     summary_df['Position'] = summary_df['Position_num'].apply(lambda x: str(int(x)) if pd.notna(x) else '—')
-    summary_df['GridPosition'] = summary_df['GridPosition_num'].apply(lambda x: str(int(x)) if pd.notna(x) else '—')
     summary_df['Abbreviation'] = summary_df['Abbreviation'].fillna('—')
     summary_df['FullName'] = summary_df['FullName'].fillna('Unknown')
-    summary_df['Time'] = summary_df['Time'].fillna('—')
+    # Format Time column (fastf1 often provides pd.Timedelta). Show mm:ss.sss or ss.sss
+    def format_time_val(t):
+        if pd.isna(t):
+            return '—'
+        # pd.Timedelta -> format nicely
+        if isinstance(t, pd.Timedelta):
+            total = t.total_seconds()
+            mins = int(total // 60)
+            secs = total % 60
+            if mins:
+                return f"{mins}:{secs:06.3f}"
+            else:
+                return f"{secs:.3f}s"
+        # fallback: str()
+        try:
+            return str(t)
+        except Exception:
+            return '—'
+
+    summary_df['Time'] = summary_df['Time'].apply(format_time_val)
     summary_df['Status'] = summary_df['Status'].fillna('Unknown')
     summary_df['TeamName'] = summary_df['TeamName'].fillna('—')
 
-    # summary_df = summary_df.sort_values('Position')
-    # Custom sort: numeric positions first, others after
-    summary_df['SortOrder'] = summary_df['Position'].apply(lambda x: int(x) if str(x).isdigit() else 999)
-    summary_df = summary_df.sort_values('SortOrder').drop(columns='SortOrder')
+    # remove helper numeric column if not needed in display
+    summary_df = summary_df.drop(columns=['Position_num'])
 
 
     # team_colors = {
