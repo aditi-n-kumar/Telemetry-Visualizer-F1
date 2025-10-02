@@ -3,7 +3,9 @@ import pandas as pd
 import fastf1
 
 # Enable FastF1 cache
-fastf1.Cache.enable_cache("fastf1cache")
+# fastf1.Cache.enable_cache("fastf1cache")
+fastf1.Cache.enable_cache(".streamlit/cache")
+
 
 st.set_page_config(page_title="Championship Standings", layout="wide")
 st.title("Championship Standings Visualizer")

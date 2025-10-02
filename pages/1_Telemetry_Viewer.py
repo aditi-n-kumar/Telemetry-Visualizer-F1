@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Enable FastF1 cache
-fastf1.Cache.enable_cache('fastf1cache')
+# fastf1.Cache.enable_cache('fastf1cache')
+fastf1.Cache.enable_cache(".streamlit/cache")
 
 # Page title
 st.title("F1 Telemetry Dashboard")
