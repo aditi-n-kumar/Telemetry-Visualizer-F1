@@ -31,7 +31,7 @@ Welcome to the **F1 Strategy Dashboard**!
 This app uses data from **FastF1** to help analyze race telemetry, compare drivers' fastest laps, and explore strategy insights.
 
 ### 📊 Pages Available:
-- **Telemetry Visualizer**: Compare telemetry data (speed, throttle, brake, etc.) between two drivers during a race or qualifying session.
+- **Telemetry Viewer**: Compare telemetry data (speed, throttle, brake, etc.) between two drivers during a race or qualifying session.
 - **Session Summary**: See drivers dashboard for each session, including lap times, sector times, and tire strategies.
 - **Strategy Tools**: Analyze pit stops, tire strategies, top speeds, and sector performance.
 - *(More pages coming soon)*
