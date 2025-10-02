@@ -30,8 +30,8 @@ This app uses data from **FastF1** to help analyze race telemetry, compare drive
 To get started, click on **"Telemetry Visualizer"** in the left sidebar.
 """)
 
-fastf1.Cache.enable_cache('fastf1cache') # lets see if this makes things slower for the other pages
-
+# fastf1.Cache.enable_cache('fastf1cache') # lets see if this makes things slower for the other pages
+fastf1.Cache.enable_cache(".streamlit/cache")
 
 
 
