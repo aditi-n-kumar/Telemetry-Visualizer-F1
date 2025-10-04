@@ -122,8 +122,8 @@ if st.session_state.get('session_loaded', False):
     'Kick Sauber Ferrari': "#12B709",
     'Stake F1 Team Kick Sauber': "#12B709",
     
-    'Haas': '#B6BABD',
-    'Haas Ferrari': '#B6BABD',
+    'Haas': "#40474D",
+    'Haas Ferrari': '#40474D',
     
     # Older teams
     'Lotus': '#FFB800',
