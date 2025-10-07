@@ -13,7 +13,7 @@ A **work-in-progress** Formula 1 telemetry and strategy analysis tool built with
 
 ### 2. Session Summary Dashboard
 - Mini dashboard for race sessions.
-- Shows driver names, headshots, team colors, and key metrics.
+- Shows driver names, team colors, and key metrics.
 
 ### 3. Strategy Tools
 - Pit Stop Analyzer: visualize pit stop timing and strategy.
@@ -22,7 +22,7 @@ A **work-in-progress** Formula 1 telemetry and strategy analysis tool built with
 
 ### 4. Driver Profiles (Planned)
 - Detailed stats and historical performance.
-- Team affiliations, nationality, and career metrics.
+- Team affiliations with headshot, nationality, and career metrics.
 
 
 
