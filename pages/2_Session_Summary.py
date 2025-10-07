@@ -1,9 +1,10 @@
+import fastf1
 import streamlit as st
 import fastf1
 import pandas as pd
 
-# fastf1.Cache.enable_cache('fastf1cache')
-fastf1.Cache.enable_cache(".streamlit/cache")
+fastf1.Cache.enable_cache('fastf1cache')
+# fastf1.Cache.enable_cache(".streamlit/cache")
 
 
 st.title("F1 Mini Race Summary")

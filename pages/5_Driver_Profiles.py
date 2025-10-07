@@ -89,6 +89,9 @@ else:
                 st.write(f"🏳️ Nationality: {nationality}")
                 st.write(f"🏎️ Team: {team}")
 
+
+
+
 # ---------------------
 # import fastf1
 # import streamlit as st

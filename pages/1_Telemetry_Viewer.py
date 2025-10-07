@@ -1,3 +1,4 @@
+import fastf1
 import streamlit as st
 import fastf1
 from fastf1.utils import delta_time
@@ -8,7 +9,9 @@ import pandas as pd
 # fastf1.Cache.enable_cache('fastf1cache')
 
 #redoing this
-fastf1.Cache.enable_cache(".streamlit/cache")
+# fastf1.Cache.enable_cache(".streamlit/cache")
+
+fastf1.Cache.enable_cache('fastf1cache')
 
 
 

@@ -1,4 +1,4 @@
-# pages/3_Strategy_Tools.py
+import fastf1
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -8,8 +8,8 @@ from matplotlib.cm import get_cmap
 import io
 
 # Enable FastF1 cache
-# fastf1.Cache.enable_cache('fastf1cache')
-fastf1.Cache.enable_cache(".streamlit/cache")
+fastf1.Cache.enable_cache('fastf1cache')
+# fastf1.Cache.enable_cache(".streamlit/cache")
 
 
 st.set_page_config(page_title="Strategy Tools", layout="wide")
