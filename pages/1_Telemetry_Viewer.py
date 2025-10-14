@@ -117,7 +117,8 @@ if load_btn and driver1:
         pct = max(0, min(100, int(pct)))
         progress_bar.progress(pct)
         status_text.markdown(f"**Status:** {status}")
-        percent_text.markdown(f"**Loaded:** {pct}%")
+        # show as "[xx/100] - xx%"
+        percent_text.markdown(f"**Loaded:** [{pct}/100] - {pct}%")
 
     set_progress(3, "Starting telemetry load...")
 
