@@ -20,19 +20,47 @@ gp = st.sidebar.selectbox("Select Grand Prix", [
 session_type = st.sidebar.selectbox("Select Session", ['Q', 'R', 'S'], key='session_type')
 
 # --- Load button ---
+# on-page progress area (will show progress/percent/status when user clicks Load)
+progress_area = st.container()
+
 if st.sidebar.button("Load Session"):
     st.session_state['session_loaded'] = False  # reset first
 
+    # initialize on-page progress UI
+    progress_bar = progress_area.progress(0)
+    status_text = progress_area.empty()
+    percent_text = progress_area.empty()
+
+    def set_progress(pct: int, status: str):
+        pct = max(0, min(100, int(pct)))
+        progress_bar.progress(pct)
+        status_text.markdown(f"**Status:** {status}")
+        percent_text.markdown(f"**Loaded:** [{pct}/100] - {pct}%")
+
+    set_progress(3, "Starting session load...")
+
     with st.spinner("Loading session..."):
         try:
-            session = fastf1.get_session(st.session_state.year, st.session_state.gp, st.session_state.session_type)
+            set_progress(20, "Requesting session from FastF1...")
+            # read values from session_state (sidebar selects store into session_state via keys)
+            year_val = st.session_state.get('year', year)
+            gp_val = st.session_state.get('gp', gp)
+            session_type_val = st.session_state.get('session_type', session_type)
+
+            session = fastf1.get_session(year_val, gp_val, session_type_val)
+
+            set_progress(60, "Loading session data (this can take a moment)...")
             session.load()
+
             st.session_state['session'] = session
             st.session_state['session_loaded'] = True
-            st.success("Session loaded!")
+
+            set_progress(100, "Session loaded")
+            progress_area.success("Session loaded!")
         except Exception as e:
+            set_progress(100, "Failed")
+            progress_area.error("Failed to load session")
             st.error(f"Failed to load session: {e}")
-            st.session_state['session_loaded'] = False
 
 # --- If session is loaded, continue ---
 if st.session_state.get('session_loaded', False):
