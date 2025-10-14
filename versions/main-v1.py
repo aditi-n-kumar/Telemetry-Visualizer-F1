@@ -1,3 +1,8 @@
+## VERSION
+# load progress bar at both top and bottom of sidebar
+
+
+
 import fastf1
 import streamlit as st
 import fastf1
@@ -13,7 +18,10 @@ import pandas as pd
 
 fastf1.Cache.enable_cache('fastf1cache')
 
-
+# Sidebar progress placeholder (VERY top of the sidebar)
+sidebar_top = st.sidebar.container()
+top_progress = sidebar_top.progress(0)
+top_status = sidebar_top.empty()
 
 # Page title
 st.title("F1 Telemetry Dashboard")
@@ -101,58 +109,62 @@ telemetry_option = st.sidebar.selectbox(
 # trying to make things cleaner
 apply_smoothing = st.sidebar.checkbox("Apply Smoothing", value=False)
 
-# --- Progress area on the page (will be updated when user hits Load) ---
-progress_area = st.container()
-
 load_btn = st.sidebar.button("Load Telemetry")
+
+# Sidebar progress placeholder (bottom, just below the load button)
+sidebar_bottom = st.sidebar.container()
+bottom_progress = sidebar_bottom.progress(0)
+bottom_status = sidebar_bottom.empty()
 
 # --- Main Content ---
 if load_btn and driver1:
-    # initialize progress UI inside the page container
-    progress_bar = progress_area.progress(0)
-    status_text = progress_area.empty()
-    percent_text = progress_area.empty()
-
-    def set_progress(pct: int, status: str):
-        pct = max(0, min(100, int(pct)))
-        progress_bar.progress(pct)
-        status_text.markdown(f"**Status:** {status}")
-        percent_text.markdown(f"**Loaded:** {pct}%")
-
-    set_progress(3, "Starting telemetry load...")
+    # initialize status/percent at both top and bottom of sidebar
+    top_progress.progress(2)
+    bottom_progress.progress(2)
+    top_status.text("Starting telemetry load...")
+    bottom_status.text("Starting telemetry load...")
 
     with st.spinner("Loading telemetry data..."):
         try:
             # load driver1 telemetry
-            set_progress(15, f"Loading telemetry for {driver1} (driver 1)...")
+            top_progress.progress(15)
+            bottom_progress.progress(15)
+            top_status.text(f"Loading telemetry for {driver1}...")
+            bottom_status.text(f"Loading telemetry for {driver1}...")
             lap1, telemetry1 = get_driver_telemetry(session, driver1)
 
             # Optional driver2
             has_driver2 = driver2 != 'None'
             if has_driver2:
                 try:
-                    set_progress(40, f"Loading telemetry for {driver2} (driver 2)...")
+                    top_progress.progress(30)
+                    bottom_progress.progress(30)
+                    top_status.text(f"Loading telemetry for {driver2}...")
+                    bottom_status.text(f"Loading telemetry for {driver2}...")
                     lap2, telemetry2 = get_driver_telemetry(session, driver2)
                 except Exception as e:
                     has_driver2 = False
                     telemetry2 = None
                     lap2 = None
                     st.error(f"Could not load telemetry for {driver2}: {e}")
-                    set_progress(45, f"Failed loading telemetry for {driver2}")
 
             # Apply smoothing before plotting if requested
             if apply_smoothing:
-                set_progress(60, "Applying smoothing to telemetry...")
+                top_progress.progress(55)
+                bottom_progress.progress(55)
+                top_status.text("Applying smoothing...")
+                bottom_status.text("Applying smoothing...")
                 telemetry1 = smooth_telemetry(telemetry1)
-                if has_driver2:
+                if has_driver2 and telemetry2 is not None:
                     telemetry2 = smooth_telemetry(telemetry2)
-                set_progress(70, "Smoothing complete")
             else:
-                set_progress(55, "Smoothing skipped")
+                top_progress.progress(50)
+                bottom_progress.progress(50)
+                top_status.text("Smoothing skipped")
+                bottom_status.text("Smoothing skipped")
 
             # 1) Comparison plot (full width) - only if we have a second driver
             if has_driver2:
-                set_progress(75, "Rendering comparison plot...")
                 st.subheader(f"Comparison: {driver1} vs {driver2} - {telemetry_option}")
                 fig_compare, ax_compare = dark_fig(figsize=(10, 4))
                 plotted = False
@@ -173,7 +185,10 @@ if load_btn and driver1:
                     st.warning(f"Telemetry field '{telemetry_option}' not available for comparison.")
 
             # 2) Individual plots side-by-side
-            set_progress(85, "Rendering individual plots...")
+            top_progress.progress(75)
+            bottom_progress.progress(75)
+            top_status.text("Rendering plots...")
+            bottom_status.text("Rendering plots...")
             cols = st.columns(2)
             # Driver 1 column
             with cols[0]:
@@ -246,17 +261,24 @@ if load_btn and driver1:
                     st.info("No second driver selected — select a second driver to show a side-by-side comparison column.")
 
             # Download CSVs (kept below so UI remains clean)
-            set_progress(95, "Preparing downloads...")
+            top_progress.progress(95)
+            bottom_progress.progress(95)
+            top_status.text("Preparing downloads...")
+            bottom_status.text("Preparing downloads...")
             csv1 = telemetry1.to_csv(index=False)
             st.download_button(f"Download {driver1} Telemetry CSV", csv1, f"{driver1}_telemetry.csv", "text/csv")
-            if has_driver2:
+            if has_driver2 and telemetry2 is not None:
                 csv2 = telemetry2.to_csv(index=False)
                 st.download_button(f"Download {driver2} Telemetry CSV", csv2, f"{driver2}_telemetry.csv", "text/csv")
 
-            set_progress(100, "Telemetry load complete")
-            progress_area.success("✅ Load complete")
+            top_progress.progress(100)
+            bottom_progress.progress(100)
+            top_status.success("Telemetry load complete")
+            bottom_status.success("Telemetry load complete")
 
         except Exception as e:
-            set_progress(100, "Failed")
-            progress_area.error("❌ Failed to load telemetry")
+            top_progress.progress(100)
+            bottom_progress.progress(100)
+            top_status.error("Failed to load telemetry")
+            bottom_status.error("Failed to load telemetry")
             st.error(f"Failed to load session: {e}")
